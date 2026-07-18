@@ -1,0 +1,5 @@
+.env
+__pycache__/
+venv/
+test_frame.jpg
+live_frame.jpg
