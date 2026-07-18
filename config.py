@@ -36,3 +36,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 VISION_MODEL = os.environ.get("VISION_MODEL", "claude-sonnet-5")
 
 MAX_STEPS = int(os.environ.get("MAX_STEPS", "30"))
+
+# The decision-making persona/strategy for the vision agent (see actions.py).
+# Lives in .env / .env.example so it can be tuned without touching code.
+SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT", "")
