@@ -78,7 +78,15 @@ class RobotClient:
             if seq == total:
                 ordered = [self._frame_chunks.get(i) for i in range(1, total + 1)]
                 if all(c is not None for c in ordered):
-                    self._latest_frame = b"".join(ordered)
+                    frame = b"".join(ordered)
+                    # The protocol has no frame id, just a per-frame seq/total — if two
+                    # frames' chunks interleave (UDP has no ordering guarantee) this can
+                    # reassemble garbage that isn't valid JPEG. Only accept it if it has a
+                    # proper JPEG SOI/EOI, so a corrupt frame doesn't reach the vision model.
+                    if frame[:2] == b"\xff\xd8" and frame[-2:] == b"\xff\xd9":
+                        self._latest_frame = frame
+                    else:
+                        log.warning("discarding malformed frame (%d bytes, bad JPEG markers)", len(frame))
                 self._frame_chunks.clear()
 
     async def get_camera_frame(self, timeout_s: float = 3.0) -> bytes:
