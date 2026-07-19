@@ -22,7 +22,7 @@ DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
 # The device applies a fixed speed to whatever's non-zero and keeps going
 # until told 0 — there's no "move N degrees and stop" primitive — so duration
 # is how we translate a discrete action + magnitude into a bounded move.
-ACTION_HOLD_MS = int(os.environ.get("ACTION_HOLD_MS", "1000"))
+ACTION_HOLD_MS = int(os.environ.get("ACTION_HOLD_MS", "2000"))
 ACTION_RESEND_INTERVAL_MS = 150  # how often to resend while holding, for UDP loss
 
 # Arm/gripper strikes (arm_extend/retract, gripper_loosen/tighten) get their own,
