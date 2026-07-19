@@ -18,12 +18,23 @@ ROBOT_DEVICE_ID = os.environ.get("ROBOT_DEVICE_ID", "")
 # so the vision/decision loop can be developed and tested independently.
 DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
 
-# How long (ms) to hold each action before auto-sending the stop/idle command.
-# The device applies a fixed speed to whatever's non-zero and keeps going
-# until told 0 — there's no "move N degrees and stop" primitive — so duration
-# is how we translate a discrete action + magnitude into a bounded move.
+# How long (ms) to hold a *decisive* wheel action (ram / search turn / escape
+# maneuver — magnitude above NUDGE_MAGNITUDE_THRESHOLD) before auto-sending
+# the stop/idle command. The device applies a fixed speed to whatever's
+# non-zero and keeps going until told 0 — there's no "move N degrees and
+# stop" primitive — so duration is how we translate a discrete action +
+# magnitude into a bounded move.
 ACTION_HOLD_MS = int(os.environ.get("ACTION_HOLD_MS", "2000"))
 ACTION_RESEND_INTERVAL_MS = 150  # how often to resend while holding, for UDP loss
+
+# Small alignment nudges (ATTACK mode centering, magnitude at/below
+# NUDGE_MAGNITUDE_THRESHOLD) use their own short, ~fixed hold instead of
+# scaling with ACTION_HOLD_MS. Tuning ACTION_HOLD_MS up for stronger rams/
+# turns previously also silently doubled these fine-centering nudges (they
+# share the same magnitude scale), making alignment overshoot — this keeps
+# "small nudge to aim" and "decisive hit" independently tunable.
+NUDGE_HOLD_MS = int(os.environ.get("NUDGE_HOLD_MS", "200"))
+NUDGE_MAGNITUDE_THRESHOLD = float(os.environ.get("NUDGE_MAGNITUDE_THRESHOLD", "0.25"))
 
 # Arm/gripper strikes (arm_extend/retract, gripper_loosen/tighten) get their own,
 # longer hold + a high minimum strength floor regardless of the model's chosen

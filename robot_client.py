@@ -107,6 +107,10 @@ class RobotClient:
         kwargs = ACTION_BODY_KWARGS[action]
         if action in ARM_ACTIONS:
             hold_ms = max(50, round(config.ARM_HOLD_MS * max(config.ARM_MIN_STRENGTH, magnitude)))
+        elif magnitude <= config.NUDGE_MAGNITUDE_THRESHOLD:
+            # fine alignment nudge — scales within its own short range, independent
+            # of ACTION_HOLD_MS so tuning ram/turn strength doesn't overshoot aiming
+            hold_ms = max(50, round(config.NUDGE_HOLD_MS * (magnitude / config.NUDGE_MAGNITUDE_THRESHOLD)))
         else:
             hold_ms = max(50, round(config.ACTION_HOLD_MS * max(0.1, magnitude)))
 
