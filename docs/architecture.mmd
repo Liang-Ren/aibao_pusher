@@ -1,0 +1,55 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'background':'#0b2036',
+  'primaryColor':'#0f2c47',
+  'primaryTextColor':'#dff3ff',
+  'primaryBorderColor':'#8fd8ff',
+  'lineColor':'#8fd8ff',
+  'secondaryColor':'#123a54',
+  'tertiaryColor':'#123a54',
+  'clusterBkg':'#0f2c47',
+  'clusterBorder':'#4f7f97',
+  'edgeLabelBackground':'#0f2c47',
+  'fontFamily':'ui-monospace, SFMono-Regular, Menlo, monospace',
+  'fontSize':'13px'
+}}}%%
+flowchart TB
+    subgraph ESP["ESP32-S3 机器人"]
+        direction TB
+        CAM["摄像头"]
+        MOT["4轮电机<br/>PCA9685"]
+        FW["CircuitPython 固件<br/>UDPClient"]
+    end
+
+    subgraph IFUUU["IFUUU 云端 Relay — ifuuu.cn"]
+        direction TB
+        UDPW["UDP Worker<br/>:4209"]
+        CH["Channel 内部总线<br/>:2269"]
+        WSW["WebSocket Worker<br/>:4609"]
+        UDPW <--> CH
+        CH <--> WSW
+    end
+
+    subgraph AGENT["本地 Python Agent — aibao_pusher"]
+        direction TB
+        MAIN["main.py<br/>决策循环"]
+        RC["robot_client.py<br/>WebSocket 客户端"]
+        VA["vision_agent.py"]
+        MAIN --> RC
+        MAIN --> VA
+    end
+
+    CLAUDE["Claude API<br/>视觉 + 工具调用"]
+
+    FW -- "UDP 二进制<br/>心跳 / 绑定 / JPEG分片" --> UDPW
+    UDPW -- "UDP 二进制<br/>心跳ack / 动作指令" --> FW
+
+    RC -- "WebSocket 二进制<br/>查询设备 / 请求视频 / 动作指令" --> WSW
+    WSW -- "WebSocket 十六进制文本<br/>握手ID / 在线状态 / 视频帧" --> RC
+
+    VA -- "HTTPS<br/>摄像头帧 + 任务 + 历史" --> CLAUDE
+    CLAUDE -- "JSON 动作决策" --> VA
+
+    classDef claude fill:#3a2410,stroke:#ffb454,color:#ffe3b0,stroke-width:2px;
+    class CLAUDE claude;
+
+    linkStyle 8,9 stroke:#ffb454,stroke-width:2.5px;
