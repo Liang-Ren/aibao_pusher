@@ -21,6 +21,15 @@ TURN_ACTIONS = {"wheel_left", "wheel_right"}
 FIRST_NUDGE_AFTER = 20
 RENUDGE_EVERY = 15
 
+# Similarly, the model reliably *labels* wedged situations in its own reasoning
+# ("wedged", "stuck") but in practice keeps retrying the same backward+turn
+# combo even after it's clearly not working — this traps it in corners, where
+# turning the same direction it was told to favor for SEARCH mode just faces
+# it back into the other wall. Count consecutive wedge-labeled steps in code
+# and force a direction-switch suggestion rather than trusting it to notice.
+WEDGE_KEYWORDS = ("wedged", "stuck")
+WEDGE_NUDGE_AFTER = 4
+
 
 async def run(task: str):
     robot = RobotClient()
@@ -29,6 +38,7 @@ async def run(task: str):
     history = []
     turn_streak = 0
     next_nudge_at = FIRST_NUDGE_AFTER
+    wedge_streak = 0
 
     await robot.connect()
     try:
@@ -70,6 +80,27 @@ async def run(task: str):
                     ),
                 })
                 next_nudge_at = turn_streak + RENUDGE_EVERY
+
+            reasoning_lower = decision.get("reasoning", "").lower()
+            if any(kw in reasoning_lower for kw in WEDGE_KEYWORDS):
+                wedge_streak += 1
+            else:
+                wedge_streak = 0
+            if wedge_streak >= WEDGE_NUDGE_AFTER:
+                log.info("injecting wedge-streak nudge after %d consecutive wedge reports", wedge_streak)
+                history.append({
+                    "action": "SYSTEM_NOTE",
+                    "reasoning": (
+                        f"You have reported being wedged {wedge_streak} times in a row without "
+                        "escaping. Whatever combination of backing up and turning you've been "
+                        "using is not working here — you are very likely in a corner, not against "
+                        "a flat wall, so repeating the same turn direction just faces you into the "
+                        "other wall each time. Switch to turning the OPPOSITE direction from what "
+                        "you've been using, and back away further (magnitude 0.6+) before that "
+                        "turn."
+                    ),
+                })
+                wedge_streak = 0
 
             await robot.act(action, decision.get("magnitude", 0.3))
 
